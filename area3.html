@@ -3,49 +3,138 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>AR Gallery — model-viewer</title>
-  <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
+  <title>AR Gallery — three.js WebXR</title>
   <style>
-    body,html { height:100%; margin:0; display:flex; align-items:center; justify-content:center; background:#000; color:#fff; }
-    model-viewer { width:100%; height:100vh; }
-    .ui { position:fixed; top:12px; left:12px; z-index:5; }
-    button { padding:8px 12px; }
+    body{margin:0;overflow:hidden;background:#000}
+    #info { position:fixed; left:10px; top:10px; z-index:2; color:#fff; font-family:Arial; }
   </style>
 </head>
 <body>
-  <div class="ui">
-    <button id="placeBtn">Open AR</button>
-  </div>
+  <div id="info">Tap to place. Drag to move.</div>
 
-  <!-- Replace "model.glb" with your model URL (glTF/glb). If you want to show a flat image, embed the image as a texture on a simple glb file. -->
-  <model-viewer id="mv"
-    src="Area1.glb"
-    alt="Artwork"
-    camera-controls
-    ar
-    ar-modes="webxr scene-viewer quick-look"
-    environment-image="neutral"
-    exposure="1"
-    shadow-intensity="1"
-    style="background: #111;"
-  ></model-viewer>
+  <script type="module">
+    import * as THREE from 'https://unpkg.com/three@0.152.2/build/three.module.js';
+    import { ARButton } from 'https://unpkg.com/three@0.152.2/examples/jsm/webxr/ARButton.js';
+    import { GLTFLoader } from 'https://unpkg.com/three@0.152.2/examples/jsm/loaders/GLTFLoader.js';
 
-  <script>
-    const mv = document.querySelector('#mv');
-    document.querySelector('#placeBtn').addEventListener('click', async () => {
-      // This will trigger the platform AR experience (WebXR, Scene Viewer, or Quick Look)
-      try {
-        await mv.enterAR();
-      } catch (err) {
-        alert('AR unavailable on this device/browser.');
-        console.error(err);
+    let camera, scene, renderer;
+    let reticle, controller;
+    let model = null;
+    let hitTestSource = null;
+    let localReferenceSpace = null;
+    let placed = false;
+
+    init();
+    function init() {
+      const container = document.createElement('div');
+      document.body.appendChild(container);
+
+      scene = new THREE.Scene();
+      camera = new THREE.PerspectiveCamera();
+
+      // Light
+      const light = new THREE.HemisphereLight(0xffffff, 0xbbbbff, 1);
+      scene.add(light);
+
+      // Renderer
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer.setPixelRatio(window.devicePixelRatio);
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.xr.enabled = true;
+      container.appendChild(renderer.domElement);
+
+      document.body.appendChild(ARButton.createButton(renderer, { requiredFeatures: ['hit-test'] }));
+
+      // Reticle (indicator where we will place the model)
+      const ringGeometry = new THREE.RingGeometry(0.05, 0.07, 32).rotateX(-Math.PI / 2);
+      const ringMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+      reticle = new THREE.Mesh(ringGeometry, ringMaterial);
+      reticle.matrixAutoUpdate = false;
+      reticle.visible = false;
+      scene.add(reticle);
+
+      // Controller (for tapping)
+      controller = renderer.xr.getController(0);
+      controller.addEventListener('select', onSelect);
+      scene.add(controller);
+
+      // Load a GLB model
+      const loader = new GLTFLoader();
+      loader.load('Area1.glb', (gltf) => {
+        model = gltf.scene;
+        model.scale.set(0.5,0.5,0.5); // adjust scale as needed
+        model.visible = false; // show when placed
+        scene.add(model);
+      }, undefined, (err)=>console.error(err));
+
+      renderer.setAnimationLoop(render);
+
+      // pointer-based drag support
+      let dragging = false;
+      let lastHitPosition = new THREE.Vector3();
+      renderer.domElement.addEventListener('pointerdown', (e) => {
+        // start drag only if model already placed and pointer intersects near it
+        if (!placed) return;
+        dragging = true;
+      });
+      renderer.domElement.addEventListener('pointerup', () => dragging = false);
+
+      renderer.domElement.addEventListener('pointermove', (ev) => {
+        if (!dragging || !placed) return;
+        // perform a new transient hit test and move model to that location
+        if (hitTestSource) {
+          const session = renderer.xr.getSession();
+          const viewerPose = session.getViewerPose(localReferenceSpace);
+          // We will do transient hit test using XRFrame in render loop for best accuracy.
+        }
+      });
+
+      // on session start, request hit test source
+      renderer.xr.addEventListener('sessionstart', async () => {
+        const session = renderer.xr.getSession();
+        localReferenceSpace = await session.requestReferenceSpace('local');
+        const viewerSpace = await session.requestReferenceSpace('viewer');
+
+        // request hit test source for persistent hit testing
+        const xrHitTestSource = await session.requestHitTestSource({ space: viewerSpace });
+        hitTestSource = xrHitTestSource;
+
+        session.addEventListener('end', () => {
+          hitTestSource = null;
+          placed = false;
+          if (model) model.visible = false;
+        });
+      });
+    }
+
+    function onSelect() {
+      // Place or re-center the model at the reticle position
+      if (reticle.visible && model) {
+        model.visible = true;
+        model.position.setFromMatrixPosition(reticle.matrix);
+        model.quaternion.setFromRotationMatrix(reticle.matrix);
+        placed = true;
       }
-    });
+    }
 
-    // Optional: listen for AR events for UX
-    mv.addEventListener('ar-status', (e) => {
-      console.log('AR status', e);
-    });
+    function render(timestamp, xrFrame) {
+      if (xrFrame) {
+        const session = xrFrame.session;
+        if (hitTestSource && localReferenceSpace) {
+          const hitTestResults = xrFrame.getHitTestResults(hitTestSource);
+          if (hitTestResults.length > 0) {
+            const hit = hitTestResults[0];
+            const pose = hit.getPose(localReferenceSpace);
+            reticle.visible = true;
+            reticle.matrix.fromArray(pose.transform.matrix);
+          } else {
+            reticle.visible = false;
+          }
+        }
+      }
+
+      renderer.render(scene, camera);
+    }
   </script>
 </body>
 </html>
