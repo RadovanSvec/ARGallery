@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
+    <style>
+        model-viewer { width: 100%; height: 100vh; }
+        #ar-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        #launch-button {
+            padding: 20px 40px;
+            font-size: 1.5em;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    
+    <model-viewer
+        id="my-model"
+        src="Area1.GLB"
+        ar
+        ar-modes="webxr scene-viewer quick-look"
+        ar-scale="fixed"
+        ar-placement="wall"
+        scale="0.8 0.8 0.8"
+        orientation="0deg 0deg 0deg" 
+        shadow-intensity="1"
+    >
+        </model-viewer>
+
+    <div id="ar-overlay">
+        <button id="launch-button">Tap to Start AR Experience</button>
+    </div>
+
+    <script>
+        const modelViewer = document.querySelector('#my-model');
+        const launchButton = document.querySelector('#launch-button');
+        const overlay = document.querySelector('#ar-overlay');
+
+        // Function to start AR when the user taps the button
+        function startAR() {
+            // Check if the browser supports WebXR AR mode
+            if (modelViewer.canActivateAR) {
+                // This command tells model-viewer to launch the AR mode immediately
+                modelViewer.activateAR(); 
+            } else {
+                // Fallback for browsers that require the system's AR app (like Scene Viewer)
+                // This line activates the default mechanism which will prompt the user to use the external app
+                modelViewer.activateQuickLook();
+            }
+            // Hide the overlay once interaction is complete
+            overlay.style.display = 'none';
+        }
+
+        // 2. Attach the function to the user's tap
+        launchButton.addEventListener('click', startAR);
+
+        // Optional: Ensure the default AR button is hidden
+        modelViewer.classList.add('hide-ar-button'); 
+    </script>
+
+</body>
+</html>

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>AR Galéria - Obraz na Marker</title>
+    
+    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/ar.js@3.4.0/aframe/build/aframe-ar.min.js"></script>
+    
+    <style>
+        body { margin: 0px; overflow: hidden; }
+        .a-loader-title { display: none; }
+        .a-enter-vr { display: none !important; }
+    </style>
+</head>
+<body style="margin : 0px; overflow: hidden;">
+
+    <a-scene 
+        vr-mode-ui="enabled: false"
+        embedded 
+        
+        arjs='sourceType: webcam; detectionMode: mono_and_matrix; patternRatio: 0.75; debugUIEnabled: false;'
+        
+        renderer="logarithmicDepthBuffer: true; antialias: true; stereo: false;"
+    >
+        
+        <a-marker preset='hiro'>
+            
+            <a-image
+                src="cesta/k/vasmu/obrazku.jpg" width="1.5"        height="1"         position="0 0.5 0" 
+                
+                rotation="-90 0 0" 
+            ></a-image>
+
+        </a-marker>
+
+        <a-entity camera></a-entity>
+    </a-scene>
+
+</body>
+</html>
