@@ -60,7 +60,7 @@
 
       // Load a GLB model
       const loader = new GLTFLoader();
-      loader.load('Area1.glb', (gltf) => {
+      loader.load('https://radovansvec.github.io/ARGallery/Area1.glb', (gltf) => {
         model = gltf.scene;
         model.scale.set(0.5,0.5,0.5); // adjust scale as needed
         model.visible = false; // show when placed
