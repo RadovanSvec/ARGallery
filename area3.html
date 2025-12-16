@@ -1,0 +1,27 @@
+<script src="https://cdn.jsdelivr.net/npm/three@0.158/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.158/examples/jsm/loaders/GLTFLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.158/examples/jsm/webxr/ARButton.js"></script>
+
+<body style="margin:0; overflow:hidden;">
+<canvas id="xr-canvas"></canvas>
+
+<script>
+  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  renderer.xr.enabled = true;
+  document.body.appendChild(renderer.domElement);
+
+  document.body.appendChild(THREE.ARButton.createButton(renderer));
+
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera();
+
+  const loader = new THREE.GLTFLoader();
+  loader.load('your_model.glb', function(gltf) {
+    scene.add(gltf.scene);
+  });
+
+  function render(t, frame) {
+    renderer.render(scene, camera);
+  }
+  renderer.setAnimationLoop(render);
+</script>
