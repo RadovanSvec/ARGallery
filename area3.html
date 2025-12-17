@@ -81,7 +81,8 @@
       const clampedDistance = Math.max(minDistance, Math.min(distance, maxDistance));
       
       // Calculate scaling factor based on distance
-      const scale = minScale + (maxScale - minScale) * (1 - (clampedDistance - minDistance) / (maxDistance - minDistance));
+      //const scale = minScale + (maxScale - minScale) * (1 - (clampedDistance - minDistance) / (maxDistance - minDistance));
+      const scale = minScale + (maxScale - minScale) * Math.pow((1 - (clampedDistance - minDistance) / (maxDistance - minDistance)), 2);
       
       // Apply scaling factor to the model viewer
       mv.style.transform = `scale(${scale})`;
