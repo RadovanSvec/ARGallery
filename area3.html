@@ -69,6 +69,30 @@
     mv.addEventListener('ar-status', (e) => {
       console.log('ar-status', e);
     });
+
+    // Dynamic Scaling Logic
+    const updateScale = (distance) => {
+      const minDistance = 1; // Minimum effective distance from the object
+      const maxDistance = 5; // Maximum effective distance from the object
+      const minScale = 1; // Minimum scaling factor
+      const maxScale = 2; // Maximum scaling factor
+      
+      // Clamp distance between min and max
+      const clampedDistance = Math.max(minDistance, Math.min(distance, maxDistance));
+      
+      // Calculate scaling factor based on distance
+      const scale = minScale + (maxScale - minScale) * (1 - (clampedDistance - minDistance) / (maxDistance - minDistance));
+      
+      // Apply scaling factor to the model viewer
+      mv.style.transform = `scale(${scale})`;
+    };
+
+    // Listen to user's movement and adjust scaling
+    window.addEventListener('deviceorientation', (event) => {
+      // Dummy example: Adjust distance based on device orientation (you'd use ARCore/ARKit tracking in real apps)
+      const simulatedDistance = Math.abs(event.alpha % 360 - 180) / 180 * 4; // Example distance calculation
+      updateScale(simulatedDistance);
+    });
   </script>
 </body>
 </html>
