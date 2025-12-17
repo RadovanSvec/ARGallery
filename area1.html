@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>AR Gallery Street</title>
+  <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
+  <style>
+    body,html { height:100%; margin:0; display:flex; flex-direction:column; background:#111; color:#fff; font-family:Arial,Helvetica,sans-serif; }
+    .top { padding:12px; z-index:2; }
+    .ar-gallery { display: flex; flex-direction: row; justify-content: center; gap: 2m; }
+    .note { font-size:14px; opacity:0.9; margin-top:8px; }
+  </style>
+</head>
+<body>
+  <div class="top">
+    <strong>AR Gallery Street</strong>
+    <div class="note" id="status">Status: Preparing gallery...</div>
+  </div>
+
+  <div class="ar-gallery" id="gallery"></div> <!-- Dynamic population happens here -->
+
+  <script>
+    const gallery = document.getElementById('gallery');
+
+    // Artwork data: List of 3 objects with distances of 2m apart
+    const artworks = [
+      { src: "https://radovansvec.github.io/ARGallery/Area1.glb", alt: "Artwork 1" },
+      { src: "https://radovansvec.github.io/ARGallery/Area2.glb", alt: "Artwork 2" },
+      { src: "https://radovansvec.github.io/ARGallery/Area1.glb", alt: "Artwork 3" }
+    ];
+
+    // Dynamically add artwork elements into the gallery
+    artworks.forEach((art, index) => {
+      const modelViewer = document.createElement("model-viewer");
+      modelViewer.setAttribute("src", art.src);
+      modelViewer.setAttribute("alt", art.alt);
+      modelViewer.setAttribute("camera-controls", "");
+      modelViewer.setAttribute("ar", "");
+      modelViewer.setAttribute("ar-modes", "webxr scene-viewer quick-look");
+      modelViewer.setAttribute("environment-image", "neutral");
+      modelViewer.setAttribute("exposure", "1");
+      modelViewer.setAttribute("shadow-intensity", "1");
+
+      // Positioning (2m apart)
+      modelViewer.style.transform = `translate3d(${index * 2}m, 0m, 0m)`; // Adjust X coordinate for each artwork
+
+      gallery.appendChild(modelViewer);
+    });
+
+    // Handle errors and logging (optional)
+    document.querySelectorAll('model-viewer').forEach(viewer => {
+      viewer.addEventListener('error', (e) => {
+        console.error('Model-viewer error:', e);
+      });
+    });
+  </script>
+</body>
+</html>
