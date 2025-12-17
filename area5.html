@@ -38,54 +38,61 @@
   </div>
 
   <script>
-const video = document.getElementById('qr-video');
-const mv = document.getElementById('mv');
-let qrPosition = null; // QR code's position (to set once after scanning)
+    const statusEl = document.getElementById('status');
+    const mv = document.getElementById('mv');
 
-// Start QR scanning
-navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } }).then((stream) => {
-  video.srcObject = stream;
-  video.setAttribute('playsinline', true); // for iOS
-  video.play();
-
-  const scanQr = () => {
-    const canvas = document.createElement('canvas');
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    const ctx = canvas.getContext('2d');
-
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    const detectedQr = jsQR(imageData.data, canvas.width, canvas.height);
-
-    if (detectedQr) {
-      console.log('QR Code detected:', detectedQr.data);
-      setObjectPosition(detectedQr); // Use QR code position to place the object
-      stopQrScan(); // Stop scanning after the first detection
+    // Basic capability checks
+    if (navigator.xr) {
+      statusEl.textContent = 'Status: navigator.xr available — checking immersive-ar support...';
+      navigator.xr.isSessionSupported('immersive-ar').then(supported => {
+        statusEl.textContent = 'Status: immersive-ar supported? ' + supported;
+      }).catch(err => {
+        statusEl.textContent = 'Status: error checking immersive-ar: ' + err;
+        console.error(err);
+      });
     } else {
-      requestAnimationFrame(scanQr);
+      statusEl.textContent = 'Status: navigator.xr not available. model-viewer will use Scene Viewer fallback if possible.';
     }
-  };
 
-  scanQr();
-});
+    // Intent link builder for Scene Viewer
+    // Replace MODEL_URL in the anchor's href with the same model URL
+    const modelUrl = mv.getAttribute('src');
+    // Scene Viewer intent params
+    const sceneIntent = `intent://arvr.google.com/scene-viewer/1.0?file=${encodeURIComponent(modelUrl)}&mode=ar_preferred#Intent;scheme=https;package=com.google.android.googlequicksearchbox;action=android.intent.action.VIEW;end`;
+    document.getElementById('intentLink').href = sceneIntent;
 
-const stopQrScan = () => {
-  const stream = video.srcObject;
-  stream.getTracks().forEach(track => track.stop()); // Stop camera
-  video.remove(); // Remove video element (optional)
-};
+    // Helpful events
+    mv.addEventListener('error', (e) => {
+      console.error('model-viewer error', e);
+      statusEl.textContent = 'Status: model-viewer reported an error (see console).';
+    });
+    mv.addEventListener('ar-status', (e) => {
+      console.log('ar-status', e);
+    });
 
-// Function to position the object relative to the QR code
-const setObjectPosition = (detectedQr) => {
-  // Example QR position (real integration would calculate this based on the AR marker/plane)
-  qrPosition = { x: 0, y: 0, z: 0 }; // Replace with actual position of the QR code
+    // Dynamic Scaling Logic
+    const updateScale = (distance) => {
+      const minDistance = 1; // Minimum effective distance from the object
+      const maxDistance = 5; // Maximum effective distance from the object
+      const minScale = 1; // Minimum scaling factor
+      const maxScale = 2; // Maximum scaling factor
 
-  // Set model position 10cm (0.1 units) in front of the QR code
-  mv.style.transform = `translate3d(${qrPosition.x}px, ${qrPosition.y}px, ${qrPosition.z + 10}px)`;
+      // Clamp distance between min and max
+      const clampedDistance = Math.max(minDistance, Math.min(distance, maxDistance));
 
-  console.log('Object placed 10cm in front of QR code');
-};
+      // Calculate scaling factor based on distance
+      const scale = minScale + (maxScale - minScale) * Math.pow((1 - (clampedDistance - minDistance) / (maxDistance - minDistance)), 2);
+
+      // Apply scaling factor to the model viewer
+      mv.style.transform = `scale(${scale})`;
+    };
+
+    // Listen to user's movement and adjust scaling
+    window.addEventListener('deviceorientation', (event) => {
+      // Dummy example: Adjust distance based on device orientation (you'd use ARCore/ARKit tracking in real apps)
+      const simulatedDistance = Math.abs(event.alpha % 360 - 180) / 180 * 4; // Example distance calculation
+      updateScale(simulatedDistance);
+    });
   </script>
 </body>
 </html>
