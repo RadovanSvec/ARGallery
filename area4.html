@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>AR Test — model-viewer (Scene Viewer fallback)</title>
+  <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
+  <style>
+    body,html { height:100%; margin:0; display:flex; flex-direction:column; background:#111; color:#fff; font-family:Arial,Helvetica,sans-serif; }
+    .top { padding:12px; z-index:2; }
+    model-viewer { flex:1; width:100%; height:70vh; background:#000; }
+    .note { font-size:14px; opacity:0.9; margin-top:8px; }
+    a.intent { color:#6cf; text-decoration:underline; display:inline-block; margin-top:8px; }
+  </style>
+</head>
+<body>
+  <div class="top">
+    <strong>AR Test</strong>
+    <div class="note" id="status">Status: checking...</div>
+  </div>
+
+  <!-- Replace MODEL_URL with your full https://.../model.glb -->
+  <model-viewer id="mv"
+    src="https://radovansvec.github.io/ARGallery/Area1.glb"
+    alt="Test Model"
+    camera-controls
+    ar
+    ar-modes="webxr scene-viewer quick-look"
+    environment-image="neutral"
+    exposure="1"
+    shadow-intensity="1"
+  ></model-viewer>
+
+  <!-- Intent fallback link for Android Scene Viewer (works on many Android devices) -->
+  <div style="padding:12px;">
+    <a id="intentLink" class="intent" href="#">Open Android Scene Viewer (fallback)</a>
+    <div class="note">If model-viewer can’t open AR, try the "Open Android Scene Viewer" link above. If that fails, check Play Services for AR and that the MODEL_URL is HTTPS + accessible.</div>
+  </div>
+
+  <script>
+    const statusEl = document.getElementById('status');
+    const mv = document.getElementById('mv');
+
+    // Basic capability checks
+    if (navigator.xr) {
+      statusEl.textContent = 'Status: navigator.xr available — checking immersive-ar support...';
+      navigator.xr.isSessionSupported('immersive-ar').then(supported => {
+        statusEl.textContent = 'Status: immersive-ar supported? ' + supported;
+      }).catch(err => {
+        statusEl.textContent = 'Status: error checking immersive-ar: ' + err;
+        console.error(err);
+      });
+    } else {
+      statusEl.textContent = 'Status: navigator.xr not available. model-viewer will use Scene Viewer fallback if possible.';
+    }
+
+    // Intent link builder for Scene Viewer
+    // Replace MODEL_URL in the anchor's href with the same model URL
+    const modelUrl = mv.getAttribute('src');
+    // Scene Viewer intent params
+    const sceneIntent = `intent://arvr.google.com/scene-viewer/1.0?file=${encodeURIComponent(modelUrl)}&mode=ar_preferred#Intent;scheme=https;package=com.google.android.googlequicksearchbox;action=android.intent.action.VIEW;end`;
+    document.getElementById('intentLink').href = sceneIntent;
+
+    // Helpful events
+    mv.addEventListener('error', (e) => {
+      console.error('model-viewer error', e);
+      statusEl.textContent = 'Status: model-viewer reported an error (see console).';
+    });
+    mv.addEventListener('ar-status', (e) => {
+      console.log('ar-status', e);
+    });
+  </script>
+</body>
+</html>
